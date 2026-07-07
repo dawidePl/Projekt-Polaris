@@ -12,7 +12,20 @@ struct RocketState {
     double Cd = 0.8; // Drag coefficient
 };
 
+class RocketEngine {
+public:
+    vec2<Degrees<double>> engineAngle;
+
+    /*
+    TODO: derive diff equation for thrust, based on:
+        - engine dimensions
+        - time
+    */
+    vec3<double> getThrust();
+};
+
 class Rocket {
 public:
     RocketState state;
+    RocketEngine engine;
 };

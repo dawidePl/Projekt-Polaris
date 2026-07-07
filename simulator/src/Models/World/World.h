@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../Rocket.h"
+#include "../Rocket/Rocket.h"
 #include "Atmosphere.h"
 
 struct World {
