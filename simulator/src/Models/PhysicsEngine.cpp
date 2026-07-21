@@ -1,7 +1,7 @@
 #include "PhysicsEngine.h"
 
-vec3<double> PhysicsEngine::calculateGravity(const Rocket &rocket) const {
-    return {0.0, 0.0, rocket.state.mass * -9.81};
+vec3<double> PhysicsEngine::calculateGravity(Rocket &rocket) const {
+    return {0.0, 0.0, rocket.getMass() * -9.81};
 }
 
 vec3<double> PhysicsEngine::calculateDrag(const Rocket &rocket) const {
@@ -11,13 +11,35 @@ vec3<double> PhysicsEngine::calculateDrag(const Rocket &rocket) const {
 }
 
 void PhysicsEngine::update(Rocket &rocket, double dt) {
-    // Step 1. - calculate sum of forces acting on the rocket + is up, - is down
-    vec3 netForce = rocket.engine.getThrust() + this->calculateGravity(rocket) + this->calculateDrag(rocket);
+    // Step 1. - calculate sum of forces acting on the rocket due to gravity z axis + is up, - is down
+    // vec3 netForce = rocket.engine.getThrust() + this->calculateGravity(rocket) + this->calculateDrag(rocket);
+    // vec3 Fgrav
 
-    std::cout << "Net force: " << netForce.z() << " N" << std::endl;
+    std::vector<std::unique_ptr<ForceGenerator>> forces;
 
-    // Step 2. - calculate acceleration
-    rocket.state.acceleration = netForce / rocket.state.mass;
-    rocket.state.velocity += rocket.state.acceleration * dt;
-    rocket.state.position += rocket.state.velocity * dt;   
+    forces.push_back(std::make_unique<ForceGravity>());
+    forces.push_back(std::make_unique<ForceDrag>());
+    forces.push_back(std::make_unique<ForceThrust>());
+    
+    vec3<double> sumForces {0.0};
+
+    for(auto& force : forces)
+        sumForces += force->calculate(rocket).force;
+
+    std::cout << "Net forces: (" << sumForces.x() << ", " << sumForces.y() << ", " << sumForces.z() << ")" << std::endl;
+
+    // Step 2. - burn fuel
+    if(rocket.state.massFuel > rocket.engine.massFlowRate * dt)
+        rocket.state.massFuel -= rocket.engine.massFlowRate * dt;
+    else if(rocket.state.massFuel > 0)
+        rocket.state.massFuel = 0;
+    else {
+        rocket.state.massFuel = 0;
+        rocket.engine.massFlowRate = 0;
+    }
+
+    // Step 3. - calculate acceleration
+    // rocket.state.acceleration = netForce / rocket.getMass();
+    // rocket.state.velocity += rocket.state.acceleration * dt;
+    // rocket.state.position += rocket.state.velocity * dt;
 }

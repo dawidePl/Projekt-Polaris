@@ -4,9 +4,10 @@
 //     return {0.0, 0.0, 100.0};
 // }
 
+// TODO: loading thrust data from OpenRocket data
 vec3<double> RocketEngine::getThrust() {
     mat3<double> R = mat3<double>::rotation_y(this->engineAngle.y()) * mat3<double>::rotation_x(this->engineAngle.x());
-    vec3<double> Ft = {0.0, 0.0, 100.0}; // N, TODO: implement based on Ft(t)
+    vec3<double> Ft = {0.0, 0.0, this->massFlowRate * this->Ve}; // N, TODO: implement based on Ft(t)
 
     return R * Ft;
 }
