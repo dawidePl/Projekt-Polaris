@@ -11,7 +11,7 @@ int main() {
         .acceleration = {0.0, 0.0, 0.0},
         .massFuel = 5.0,
         .massStructural = 3.5,
-        .csArea = 1.0,
+        .csArea = 0.0079,
         .Cd = 0.8
     };
 
@@ -19,24 +19,43 @@ int main() {
     rocket.state = rocketState;
     rocket.engine = {
         .engineAngle = { deg_to_rad(0.0), deg_to_rad(0.0) },
-        .massFlowRate = 1.0,
-        .Ve = 1250
+        .thrust = 125,
+        .Isp = 150
     };
     
     PhysicsEngine physicsEngine;
 
-    double simuTime = 10.0; // seconds
+    double simuTime = 200.0; // seconds
+    double t = 0.0;
     double dt = 0.05;
 
-    double apogee = 0.0;
+    double nextPrint = 0.0;
+    const double printInterval = 0.05;
 
-    while(simuTime > 0) {
-        physicsEngine.update(rocket, dt); // dt = 0.05 seconds
+    while(t <= simuTime) {
+        physicsEngine.update(rocket, t, dt); // dt = 0.05 seconds
 
-        simuTime -= dt;
+        if(t >= nextPrint) {
+            #ifndef DEBUG_MODE
+            std::cout << "[ TIME  " << t << " ]" << std::endl;
+            std::cout << "Position: " << rocket.state.position << std::endl;
+            std::cout << "Velocity: " << rocket.state.velocity << std::endl;
+            std::cout << std::endl;
+            #endif
+
+            nextPrint += printInterval;
+        }
+
+        if(rocket.state.position.z() <= 0) {
+            std::cout << "SIMULATION ENDED, REACHED GROUND" << std::endl;
+
+            break;
+        }
+
+        t += dt;
     }
 
-    std::cout << "Apogeum: " << apogee << " m" << std::endl;
+    // std::cout << "Apogeum: " << apogee << " m" << std::endl;
 
     return 0;
 }

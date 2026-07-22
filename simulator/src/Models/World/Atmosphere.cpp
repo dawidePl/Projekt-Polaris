@@ -9,5 +9,5 @@ double Atmosphere::getPressure(double h) {
 }
 
 double Atmosphere::getDensity(double h) {
-    return std::pow((Atmosphere::getTemperature(h) * Atmosphere::rho0) / Atmosphere::T0, Atmosphere::n - 1);
+    return Atmosphere::rho0 * std::pow((Atmosphere::getTemperature(h) / Atmosphere::T0), Atmosphere::n - 1);
 }

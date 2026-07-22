@@ -1,5 +1,6 @@
 #pragma once
 
+#include <iostream>
 #include <cstddef>
 #include <array>
 #include <cmath>
@@ -83,6 +84,23 @@ public:
         return { e[1]*u[2] - e[2]*u[1],
                  e[2]*u[0] - e[0]*u[2],
                  e[0]*u[1] - e[1]*u[0] };
+    }
+
+    
+
+    friend std::ostream &operator<<(std::ostream &os, const vec& v) {
+        os << "(";
+        
+        if constexpr (N > 0) {
+            os << v[0];
+            
+            for(size_t i = 1; i < N; i++)
+                os << ", " << v[i];
+        }
+
+        os << ")";
+
+        return os;
     }
 };
 

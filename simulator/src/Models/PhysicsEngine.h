@@ -12,16 +12,28 @@ struct ForceResult {
     vec3<double> torque;
 };
 
+#ifdef DEBUG_MODE
+struct ForceDebug {
+    std::string_view name;
+    ForceResult fr;
+};
+#endif
+
 class ForceGenerator {
 public:
     virtual ~ForceGenerator() = default;
 
-    virtual ForceResult calculate(Rocket &rocket) = 0;
+    virtual std::string_view name() const = 0;
+    virtual ForceResult calculate(Rocket &rocket, double t) = 0;
 };
 
 class ForceGravity : public ForceGenerator {
 public:
-    ForceResult calculate(Rocket &rocket) override {
+    std::string_view name() const override {
+        return "Gravity";
+    }
+
+    ForceResult calculate(Rocket &rocket, double t) override {
         double Fg = -9.81;
         double mass = rocket.state.massFuel + rocket.state.massStructural;
 
@@ -36,7 +48,11 @@ public:
 
 class ForceDrag : public ForceGenerator {
 public:
-    ForceResult calculate(Rocket &rocket) override {
+    std::string_view name() const override {
+        return "Drag";
+    }
+
+    ForceResult calculate(Rocket &rocket, double t) override {
         // double direction = 0.0;
         // double Fd = -0.5 * rocket.state.Cd * rocket.state.csArea * rocket.state.velocity.z() * rocket.state.velocity.z() * Atmosphere::getDensity(rocket.state.velocity.z());
 
@@ -58,8 +74,12 @@ public:
 
 class ForceThrust : public ForceGenerator {
 public:
-    ForceResult calculate(Rocket &rocket) override {
-        vec3<double> Ft = rocket.engine.getThrust();
+    std::string_view name() const override {
+        return "Thrust";
+    }
+
+    ForceResult calculate(Rocket &rocket, double t) override {
+        vec3<double> Ft = rocket.getThrust(t);
 
         return {
             Ft,
@@ -74,5 +94,5 @@ public:
     vec3<double> calculateGravity(Rocket &rocket) const;
     vec3<double> calculateDrag(const Rocket &rocket) const;
 
-    void update(Rocket &rocket, double dt);
+    void update(Rocket &rocket, double t, double dt);
 };

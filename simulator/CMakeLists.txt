@@ -15,3 +15,5 @@ target_link_libraries(simulator
     PRIVATE
     common
 )
+
+# target_compile_definitions(simulator PRIVATE DEBUG_MODE)

@@ -17,8 +17,8 @@ struct RocketState {
 
 class RocketEngine {
 public:
-    double massFlowRate; // kg/s
-    double Ve; // m/s
+    double thrust;
+    double Isp;
 
     vec2<Radians<double>> engineAngle;
 
@@ -27,7 +27,7 @@ public:
         - engine dimensions
         - time
     */
-    vec3<double> getThrust();
+    // vec3<double> getThrust();
 };
 
 class Rocket {
@@ -38,4 +38,7 @@ public:
     double getMass() {
         return this->state.massFuel + this->state.massStructural;
     }
+
+    double getBurnTime();
+    vec3<double> getThrust(double t);
 };
