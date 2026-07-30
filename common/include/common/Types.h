@@ -1,7 +1,6 @@
 #pragma once
 
 template<typename T> struct Degrees;
-
 template<typename T> struct Radians;
 
 template<typename T>

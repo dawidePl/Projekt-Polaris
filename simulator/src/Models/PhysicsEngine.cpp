@@ -1,5 +1,11 @@
 #include "PhysicsEngine.h"
 
+PhysicsEngine::PhysicsEngine() {
+    forces.push_back(std::make_unique<ForceGravity>());
+    forces.push_back(std::make_unique<ForceDrag>());
+    forces.push_back(std::make_unique<ForceThrust>());
+}
+
 vec3<double> PhysicsEngine::calculateGravity(Rocket &rocket) const {
     return {0.0, 0.0, rocket.getMass() * -9.81};
 }
@@ -11,71 +17,57 @@ vec3<double> PhysicsEngine::calculateDrag(const Rocket &rocket) const {
 }
 
 void PhysicsEngine::update(Rocket &rocket, double t, double dt) {
-    #ifdef DEBUG_MODE
-    std::vector<ForceDebug> forceDebug;
-    #endif
-
     // Step 1. - burn fuel
-    double mdot = rocket.engine.thrust / (rocket.engine.Isp * 9.80665);
+    rocket.burnFuel(dt);
 
-    if(rocket.state.massFuel > mdot) {
-        rocket.state.massFuel -= mdot;
-    }else rocket.state.massFuel = 0;
-
-
-
-    // Step 2. - calculate sum of forces acting on the rocket due to gravity z axis + is up, - is down
-    std::vector<std::unique_ptr<ForceGenerator>> forces;
-
-    forces.push_back(std::make_unique<ForceGravity>());
-    forces.push_back(std::make_unique<ForceDrag>());
-    forces.push_back(std::make_unique<ForceThrust>());
+    // // Step 2. - calculate sum of forces acting on the rocket due to gravity z axis + is up, - is down
     
-    vec3<double> sumForces {0.0};
-    vec3<double> sumTorque {0.0};
+    vec3<double> sumForcesBody {0.0};
+    vec3<double> sumMomentsBody {0.0};
 
     for(auto& force : forces) {
         ForceResult fr = force->calculate(rocket, t);
 
-        sumForces += fr.force;
-        sumTorque += fr.torque;
-
-        #ifdef DEBUG_MODE
-        ForceDebug fd = {
-            force->name(),
-            fr
-        };
-
-        forceDebug.push_back(fd);
-        #endif
+        sumForcesBody += fr.force;
+        sumMomentsBody += fr.moment;
     }
+
+    vec3<double> forceWorld = rocket.state.rotation.rotate(sumForcesBody);
 
 
 
     // Step 3.
-    rocket.state.acceleration = sumForces / rocket.getMass();
+    rocket.state.acceleration = forceWorld / rocket.getMass();
     rocket.state.velocity += rocket.state.acceleration * dt;
     rocket.state.position += rocket.state.velocity * dt;
 
+    mat3<double> I = rocket.getInertiaTensor();
+    vec3<double> w = rocket.state.angularVelocity;
+    
+    std::cout << "Moment: "
+          << sumMomentsBody.x() << " "
+          << sumMomentsBody.y() << " "
+          << sumMomentsBody.z()
+          << std::endl;
 
-    // =========================== [ FOR DEBUGGING ] ===========================
-    #ifdef DEBUG_MODE
-        std::cout << "=========================== [ DEBUG ] ===========================" << std::endl;
-
-        std::cout << "[FORCES]" << std::endl;
+    std::cout << "Angular acc: "
+          << rocket.state.angularAcceleration
+          << std::endl;
         
-        for(auto &fd : forceDebug) {
-            std::cout << fd.name << ": " << fd.fr.force << std::endl;
-        }
+    std::cout << "Inertia tensor:\n"
+          << I << std::endl;
 
-        std::cout << std::endl << std::endl;
+    std::cout << "Inverse:\n"
+          << I.inverse() << std::endl;
 
-        std::cout << "[ROCKET STATE]" << std::endl;
-        std::cout << "Position: " << rocket.state.position << std::endl;
-        std::cout << "Velocity: " << rocket.state.velocity << std::endl;
-        std::cout << "Acceleration: " << rocket.state.acceleration << std::endl;
+    rocket.state.angularAcceleration = I.inverse() * (sumMomentsBody - w.cross(I * w));
+    rocket.state.angularVelocity += rocket.state.angularAcceleration * dt;
+    
+    w = rocket.state.angularVelocity;
 
-        std::cout << "=========================== [ DEBUG ] ===========================" << std::endl << std::endl;
-    #endif
-    // =========================== [ FOR DEBUGGING ] ===========================
+    quat qOmega = {0.0, w.x(), w.y(), w.z()};
+    quat qDot = 0.5 * (rocket.state.rotation * qOmega);
+
+    rocket.state.rotation += qDot * dt;
+    rocket.state.rotation.normalize();
 }

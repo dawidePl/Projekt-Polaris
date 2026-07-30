@@ -85,7 +85,6 @@ public:
                  e[2]*u[0] - e[0]*u[2],
                  e[0]*u[1] - e[1]*u[0] };
     }
-
     
 
     friend std::ostream &operator<<(std::ostream &os, const vec& v) {
@@ -120,9 +119,15 @@ public:
     mat() = default;
 
     // Construct from N column vectors
-    template<typename... Args>
-    explicit mat(Args... args) requires (sizeof...(Args) == N)
-        : cols{args...} {}
+    mat(const vec<T,N>& c0,
+        const vec<T,N>& c1,
+        const vec<T,N>& c2)
+    requires (N == 3)
+        {
+            cols[0]=c0;
+            cols[1]=c1;
+            cols[2]=c2;
+        }
 
     static mat identity() {
         mat r;
@@ -180,6 +185,37 @@ public:
         mat r;
         for (std::size_t j = 0; j < N; ++j) r.cols[j] = cols[j] * s;
         return r;
+    }
+
+    mat& operator+=(const mat& o) {
+        for(std::size_t j = 0; j < N; ++j)
+            cols[j] += o.cols[j];
+
+        return *this;
+    }
+
+    friend std::ostream& operator<<(std::ostream& os, const mat& m) {
+        os << "(\n";
+
+        for (std::size_t i = 0; i < N; i++) {
+            os << "  (";
+
+            for (std::size_t j = 0; j < N; j++) {
+                os << m(i, j);
+
+                if (j < N - 1)
+                    os << ", ";
+            }
+
+            os << ")";
+
+            if (i < N - 1)
+                os << "\n";
+        }
+
+        os << "\n)";
+
+        return os;
     }
 
     // --- Rotation factories, only meaningful for 3x3 ---
@@ -260,3 +296,100 @@ public:
 template<typename T> using mat2 = mat<T, 2>;
 template<typename T> using mat3 = mat<T, 3>;
 template<typename T> using mat4 = mat<T, 4>;
+
+template<typename T>
+class quat {
+private:
+    std::array<T, 4> e {};
+
+public:
+    quat() = default;
+    quat(T w, T x, T y, T z) :
+        e {w, x, y, z} {}
+
+    T w() const { return e[0]; }
+    T x() const { return e[1]; }
+    T y() const { return e[2]; }
+    T z() const { return e[3]; }
+
+
+    quat operator*(const quat& q) const {
+        return {
+            w() * q.w() - x() * q.x() - y() * q.y() - z() * q.z(),
+            w() * q.x() + x() * q.w() + y() * q.z() - z() * q.y(),
+            w() * q.y() - x() * q.z() + y() * q.w() + z() * q.x(),
+            w() * q.z() + x() * q.y() - y() * q.x() + z() * q.w()
+        };
+    }
+
+    quat operator*(T scalar) const {
+        return {
+            w() * scalar,
+            x() * scalar,
+            y() * scalar,
+            z() * scalar
+        };
+    }
+
+
+
+    friend quat operator*(T scalar, const quat& q) {
+        return {
+            q.w() * scalar,
+            q.x() * scalar,
+            q.y() * scalar,
+            q.z() * scalar
+        };
+    }
+
+        quat& operator+=(const quat &q) {
+        e[0] += q.w();
+        e[1] += q.x();
+        e[2] += q.y();
+        e[3] += q.z();
+
+        return *this;
+    }
+
+
+
+    quat inverse() const {
+        return { w(), -x(), -y(), -z() };
+    }
+
+    void normalize() {
+        T len = sqrt(e[0] * e[0] +
+                          e[1] * e[1] +
+                          e[2] * e[2] +
+                          e[3] * e[3]);
+
+        if(!std::isfinite(len) || len <= std::numeric_limits<T>::epsilon()) {
+            e[0] = T(1);
+            e[1] = T(0);
+            e[2] = T(0);
+            e[3] = T(0);
+
+            return;
+        }
+            
+        
+        e[0] /= len;
+        e[1] /= len;
+        e[2] /= len;
+        e[3] /= len;
+    }
+
+    vec3<T> rotate(const vec3<T> &v) const {
+        quat<T> qv = {0.0, v.x(), v.y(), v.z()};
+        quat<T> q = (*this) * qv * this->inverse();
+
+        return {q.x(), q.y(), q.z()};
+    }
+
+    vec3<T> inverseRotate(const vec3<T> &v) const {
+        quat<T> qv = {0.0, v.x(), v.y(), v.z()};
+        quat<T> q = this->inverse() * qv * (*this);
+
+        return {q.x(), q.y(), q.z()};
+    }
+};
